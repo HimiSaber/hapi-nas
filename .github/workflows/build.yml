@@ -1,0 +1,63 @@
+name: build-and-push-hapi
+
+on:
+  workflow_dispatch:
+    inputs:
+      hapi_version:
+        description: HAPI release tag
+        required: true
+        default: v0.16.4
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set image metadata
+        id: meta
+        shell: bash
+        run: |
+          echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/hapi" >> "$GITHUB_OUTPUT"
+          if [ -n "${{ github.event.inputs.hapi_version }}" ]; then
+            echo "version=${{ github.event.inputs.hapi_version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=v0.16.4" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            HAPI_VERSION=${{ steps.meta.outputs.version }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.description=HAPI hub image for Synology/NAS deployment
+          tags: |
+            ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}
+            ${{ steps.meta.outputs.image }}:latest

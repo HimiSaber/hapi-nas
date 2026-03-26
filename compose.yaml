@@ -1,0 +1,17 @@
+services:
+  hapi:
+    image: ghcr.io/himisaber/hapi:v0.16.4
+    container_name: hapi
+    restart: unless-stopped
+    command: ["hapi", "hub"]
+    ports:
+      - "3006:3006"
+    environment:
+      TZ: Asia/Shanghai
+      HAPI_HOME: /data
+      HAPI_LISTEN_HOST: 0.0.0.0
+      HAPI_LISTEN_PORT: 3006
+      CLI_API_TOKEN: "CHANGE_ME_TO_A_LONG_RANDOM_TOKEN"
+      TELEGRAM_NOTIFICATION: "false"
+    volumes:
+      - /volume1/docker/hapi/data:/data
